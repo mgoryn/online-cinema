@@ -1,0 +1,125 @@
+services:
+  postgres_theater:
+    image: 'postgres:15'
+    container_name: postgres_theater_local
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_DB_PORT}:${POSTGRES_DB_PORT}"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_theater_data:/var/lib/postgresql/data/
+    networks:
+      - theater_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_theater_local
+    ports:
+      - "5050:80"
+    env_file:
+      - .env
+    depends_on:
+      postgres_theater:
+        condition: service_healthy
+    volumes:
+      - pgadmin_theater_data:/var/lib/pgadmin
+    networks:
+      - theater_network
+
+  mailhog_theater:
+    image: mailhog/mailhog
+    container_name: mailhog_theater_local
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    networks:
+      - theater_network
+
+  minio-theater:
+    image: minio/minio:latest
+    container_name: minio-theater_local
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "9001:9001"
+    env_file:
+      - .env
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theater_network
+
+  # Сервіс для початкового налаштування MinIO (створення bucket)
+  minio_mc:
+    image: minio/mc
+    container_name: minio_mc_local
+    depends_on:
+      minio-theater:
+        condition: service_healthy
+    env_file:
+      - .env
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add minio http://${MINIO_HOST}:${MINIO_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb minio/${MINIO_STORAGE} || true;
+      /usr/bin/mc policy set public minio/${MINIO_STORAGE};
+      exit 0;
+      "
+    networks:
+      - theater_network
+
+  web:
+    build: .
+    container_name: backend_theater_local
+    command: [ "/bin/bash", "/app/commands/run_web_server_dev.sh" ]
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres_theater:
+        condition: service_healthy
+      minio-theater:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./commands:/app/commands
+      - ./alembic.ini:/app/alembic.ini
+    networks:
+      - theater_network
+
+  migrator:
+    build: .
+    container_name: alembic_migrator_local
+    command: [ "/bin/bash", "/app/commands/run_migration.sh" ]
+    depends_on:
+      postgres_theater:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./commands:/app/commands
+      - ./alembic.ini:/app/alembic.ini
+    env_file:
+      - .env
+    networks:
+      - theater_network
+
+volumes:
+  postgres_theater_data:
+  pgadmin_theater_data:
+  minio_data:
+
+networks:
+  theater_network:
+    driver: bridge
