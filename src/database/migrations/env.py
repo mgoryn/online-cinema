@@ -14,16 +14,18 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# --- START OF OUR CUSTOM CONFIGURATION ---
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+# Import your settings and Base model
+from src.config.settings import settings
+from src.database.models.base import Base
+from src.database.models import accounts  # Import your models here
+
+# This is the most important part.
+# We are telling Alembic to use our models for autogeneration.
+target_metadata = Base.metadata
+
+# --- END OF OUR CUSTOM CONFIGURATION ---
 
 
 def run_migrations_offline() -> None:
@@ -38,7 +40,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Use the database URL from our settings
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -57,16 +60,14 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    # This part is modified to use our settings object
+    from sqlalchemy import create_engine
+
+    # Create an engine with the URL from our settings
+    connectable = create_engine(settings.database_url)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
