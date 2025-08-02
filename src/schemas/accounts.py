@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 
-from src.validation import accounts as accounts_validators
+from src.database.validators import accounts as accounts_validators
 
 # ===================================================================
 #                       Base & Common Schemas

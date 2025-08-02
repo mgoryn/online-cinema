@@ -1,8 +1,5 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -17,13 +14,13 @@ if config.config_file_name is not None:
 # --- START OF OUR CUSTOM CONFIGURATION ---
 
 # Import your settings and Base model
-from src.config.settings import settings
-from src.database.models.base import Base
-from src.database.models import accounts  # Import your models here
+from src.config import settings
+from src.database import Base
 
 # This is the most important part.
 # We are telling Alembic to use our models for autogeneration.
 target_metadata = Base.metadata
+
 
 # --- END OF OUR CUSTOM CONFIGURATION ---
 
