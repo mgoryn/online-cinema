@@ -1,9 +1,14 @@
+import sys
+import os
+
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+)
+
 from logging.config import fileConfig
 
 from alembic import context
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -13,9 +18,9 @@ if config.config_file_name is not None:
 
 # --- START OF OUR CUSTOM CONFIGURATION ---
 
-# Import your settings and Base model
-from src.config import settings
 from src.database import Base
+from src.database.session_postgresql import sync_postgresql_engine
+from src.database.models import accounts, movies
 
 # This is the most important part.
 # We are telling Alembic to use our models for autogeneration.
@@ -37,10 +42,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Use the database URL from our settings
-    url = settings.database_url
     context.configure(
-        url=url,
+        url=os.getenv("DATABASE_URL"),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -61,7 +64,7 @@ def run_migrations_online() -> None:
     from sqlalchemy import create_engine
 
     # Create an engine with the URL from our settings
-    connectable = create_engine(settings.database_url)
+    connectable = sync_postgresql_engine
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
