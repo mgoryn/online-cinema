@@ -1,0 +1,2 @@
+-- This file can be used for initial database setup.
+-- For now, it's empty because migrations will handle the schema.
