@@ -218,6 +218,17 @@ pytest -m "unit or integration" --disable-warnings -v
 ```
 ---
 
+In the Swagger UI, you will find:
+* **A complete list of all available endpoints**, grouped by tags (e.g., `accounts`, `movies`, `profiles`).
+* **Detailed information for each endpoint**, including the HTTP method, URL, summary, and description.
+* **A breakdown of all required parameters** (path, query, body) with their data types and validation rules.
+* **Example request bodies** and detailed schemas for all possible responses, including error codes.
+* **An interactive "Try it out" button** that allows you to execute API requests directly from your browser.
+
+This is the primary source of truth for understanding how to use the API, what parameters to send, and what each action does.
+
+---
+
 ## 🧪 Testing
 
 The project uses a separate configuration for testing, which runs against a temporary in-memory SQLite database to ensure test isolation and speed.
